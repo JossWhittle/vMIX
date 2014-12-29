@@ -59,8 +59,8 @@ public:
 		for (int i = 0; i <= 7; ++i) {
 			devices[i] = new IOTape("TapeUnit-" + to_string(i) + ".bin");
 		}
-		for (int i = 8; i <= 15; ++i) {
-			devices[i] = new IODisk("DiskUnit-" + to_string(i) + ".bin");
+		for (int i = 8, j = 0; i <= 15; ++i, ++j) {
+			devices[i] = new IODisk("DiskUnit-" + to_string(j) + ".bin");
 		}
 		// Char Devices
 		devices[16] = new IOCardReader("Cards/In/");
