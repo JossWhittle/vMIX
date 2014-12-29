@@ -14,6 +14,7 @@ typedef uint32_t uint;
 constexpr uint P = 0;
 constexpr uint N = 1;
 constexpr uint INDEX_ADDR_MASK = (1 << 12) - 1;
+constexpr uint BYTE_MASK	   = (1 << 6)  - 1;
 
 // Machine word
 // Five (6 bit) bytes + sign
