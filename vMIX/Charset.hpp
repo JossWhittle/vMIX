@@ -27,7 +27,7 @@ constexpr inline char toChar(const uint val) {
 	return CHAR_TABLE[val];
 };
 
-constexpr inline uint toVal(const char code) {
+inline uint toVal(const char code) {
 	for (int i = 0; i < CHARSET_SIZE; ++i) {
 		if (code == CHAR_TABLE[i]) return i;
 	}

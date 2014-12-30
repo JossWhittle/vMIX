@@ -57,17 +57,17 @@ public:
 
 		// Binary Storage
 		for (int i = 0; i <= 7; ++i) {
-			devices[i] = new IOTape("TapeUnit-" + to_string(i) + ".bin");
+			devices[i] = new IOTape("data/TapeUnit-" + to_string(i) + ".bin");
 		}
 		for (int i = 8, j = 0; i <= 15; ++i, ++j) {
-			devices[i] = new IODisk("DiskUnit-" + to_string(j) + ".bin");
+			devices[i] = new IODisk("data/DiskUnit-" + to_string(j) + ".bin");
 		}
 		// Char Devices
-		devices[16] = new IOCardReader("Cards/In/");
-		devices[17] = new IOCardWriter("Cards/Out/");
+		devices[16] = new IOCardReader("data/Cards/In/");
+		devices[17] = new IOCardWriter("data/Cards/Out/");
 		devices[18] = new IOLinePrinter(cout);
 		devices[19] = new IOTypeWriter(cin);
-		devices[20] = new IOPaperTape("PaperTape.txt");
+		devices[20] = new IOPaperTape("data/PaperTape.txt");
 
 		INSTR::setC(memory[instrPtr], (uint) OP::SPECIAL);
 		INSTR::setF(memory[instrPtr], (uint) FIELD_SPECIAL::HLT);

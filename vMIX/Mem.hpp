@@ -25,7 +25,7 @@ struct vWord {
 	uint data:30;
 
 	// Overloaded cast to int
-	inline operator uint() { return (sign == P) ? data : -data; }
+	inline operator uint() const { return (sign == P) ? data : -data; };
 };
 
 // Getters
