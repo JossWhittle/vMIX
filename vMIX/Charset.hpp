@@ -14,13 +14,13 @@ enum class CHAR_INDEX {
 	LARROW, RARROW, AT, SEMICOLON, COLON, APOS, NULLCHAR
 };
 
-constexpr uint CHARSET_SIZE = 56;
+constexpr uint CHARSET_SIZE = 57;
 constexpr char CHAR_TABLE[CHARSET_SIZE] = {
 	' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'd',
 	'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 's', 'p', 
 	'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', 
 	'3', '4', '5', '6', '7', '8', '9', '.', ',', '(', ')', 
-	'+', '-', '*', '/', '=', '$', '<', '>', '@', ';', ':', '\''
+	'+', '-', '*', '/', '=', '$', '<', '>', '@', ';', ':', '\'', ' '
 };
 
 constexpr inline char toChar(const uint val) {

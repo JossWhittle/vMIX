@@ -75,6 +75,7 @@ public:
 			outFile.write((char*) data, (blockSize * numBlocks * sizeof(vWord)));
 			outFile.close();
 		}
+		curPage++;
 		return true;	
 	};
 };
@@ -120,9 +121,27 @@ public:
 
 	// Interface
 	bool in(vWord *addr) {
-		ifstream inFile(dir + to_string(curPage) + ".card", ios::in);
+		ifstream inFile(dir + to_string(curPage) + ".card", ios::in | ios::binary);
 		if (inFile.is_open()) {
-			inFile.read((char*) data, (blockSize * numBlocks * sizeof(vWord)));
+			for (int i = 0; i < blockSize; ++i) {
+				vWord &val = *addr++;
+				val.sign = P;
+				val.data = 0;
+				for (int j = 0; j < 5; ++j) {
+					char tmp{};
+					inFile.read(&tmp, 1);
+					uint v = toVal(tmp);
+					if (v == (uint) CHAR_INDEX::NULLCHAR) {
+						v = (uint) CHAR_INDEX::SPACE;
+					}
+					val.data |= (v & BYTE_MASK) << (j * 6);
+
+					if (j > 0 && (j % 4) == 0) {
+						inFile.read(&tmp, 1);
+					}
+				}
+
+			}
 			inFile.close();
 		}
 		curPage++;
@@ -143,7 +162,18 @@ public:
 	bool out(const vWord *addr) {
 		ofstream outFile(dir + to_string(curPage) + ".card", ios::out);
 		if (outFile.is_open()) {
-			outFile.write((char*) data, (blockSize * numBlocks * sizeof(vWord)));
+			for (int i = 0; i < numBlocks; ++i) {
+				for (int j = 0; j < blockSize; ++j) {
+					const uint val = *addr++;
+					for (int k = 0; k < 5; ++k) {
+						outFile << toChar((val << (k * 6)) & BYTE_MASK);
+					}
+
+					if (j > 0 && (j % 4) == 0) {
+						outFile << '\n';
+					}
+				}
+			}
 			outFile.close();
 		}
 		curPage++;
@@ -167,6 +197,7 @@ public:
 			for (int j = 0; j < 5; ++j) {
 				outStream << toChar((val << (j * 6)) & BYTE_MASK);
 			}
+			outStream << '\n';
 		}
 		return true;
 	};
@@ -190,7 +221,11 @@ public:
 			for (int j = 0; j < 5; ++j) {
 				char tmp{};
 				inStream.read(&tmp, 1);
-				val.data |= (toVal(tmp) & BYTE_MASK) << (j * 6);
+				uint v = toVal(tmp);
+				if (v == (uint) CHAR_INDEX::NULLCHAR) {
+					v = (uint) CHAR_INDEX::SPACE;
+				}
+				val.data |= (v & BYTE_MASK) << (j * 6);
 			}
 		}
 		return true;
