@@ -2,30 +2,38 @@
 
 // std Include
 #include <fstream>
+#include <omp.h>
 
 // vMIX Includes
 #include "Mem.hpp"
 #include "Charset.hpp"
 
+using namespace std;
+
 class IODevice {
 protected:
 	// Members
 	const uint blockSize, numBlocks;
-	uint curPage;
+	uint curPage, busyUntil;
 	vWord *data;
 
 	// Helper
-	inline void cpyPage(vWord *dst, const uint page = 0) const {
-		for (int i = 0; i < blockSize; ++i) {
-			*dst++ = data[(page * blockSize) + i];
-		} 
+	inline void cpyPage(vWord *dst, const uint page) const {
+		memcpy(dst, &data[(page * blockSize)], (blockSize * sizeof(vWord)));
+	};
+	inline void cpyPage(const uint page, const vWord *src) const {
+		memcpy(&data[(page * blockSize)], src, (blockSize * sizeof(vWord)));
+	};
+
+	inline uint currentTimeMilli() const {
+		return uint(omp_get_wtime() * 1000.);
 	};
 
 public:
 	// Constructor
 	IODevice(const uint _blockSize, const uint _numBlocks) 
-		: blockSize(_blockSize), numBlocks(_numBlocks), 
-		  curPage(0), data{ new vWord[blockSize * numBlocks]{} } {};
+		: blockSize{_blockSize}, numBlocks{_numBlocks}, 
+		  curPage{0}, busyUntil{0}, data{ new vWord[blockSize * numBlocks]{} } {};
 	// Destructor
 	~IODevice() {
 		delete [] data;
@@ -42,9 +50,7 @@ public:
 		return false;
 	};
 	virtual bool busy() const {
-		// Assume for now all devices 
-		// are always available ...
-		return false;
+		return currentTimeMilli() < busyUntil;
 	};
 };
 
@@ -65,11 +71,14 @@ public:
 
 	// Interface
 	bool in(vWord *addr) {
+		busyUntil = currentTimeMilli() + (blockSize * 100);
 		cpyPage(addr, curPage);
 		curPage++;
 		return true;
 	};
 	bool out(const vWord *addr) {
+		busyUntil = currentTimeMilli() + (blockSize * 150);
+		cpyPage(curPage, addr);
 		ofstream outFile(path, ios::binary | ios::out);
 		if (outFile.is_open()) {
 			outFile.write((char*) data, (blockSize * numBlocks * sizeof(vWord)));
@@ -97,10 +106,13 @@ public:
 
 	// Interface
 	bool in(vWord *addr) {
+		busyUntil = currentTimeMilli() + (blockSize * 100);
 		cpyPage(addr, curPage);
 		return true;
 	};
 	bool out(const vWord *addr) {
+		busyUntil = currentTimeMilli() + (blockSize * 150);
+		cpyPage(curPage, addr);
 		ofstream outFile(path, ios::binary | ios::out);
 		if (outFile.is_open()) {
 			outFile.write((char*) data, (blockSize * numBlocks * sizeof(vWord)));
@@ -121,6 +133,7 @@ public:
 
 	// Interface
 	bool in(vWord *addr) {
+		busyUntil = currentTimeMilli() + (blockSize * 150);
 		ifstream inFile(dir + to_string(curPage) + ".card", ios::in | ios::binary);
 		if (inFile.is_open()) {
 			for (int i = 0; i < blockSize; ++i) {
@@ -160,13 +173,14 @@ public:
 
 	// Interface
 	bool out(const vWord *addr) {
+		busyUntil = currentTimeMilli() + (blockSize * 250);
 		ofstream outFile(dir + to_string(curPage) + ".card", ios::out);
 		if (outFile.is_open()) {
 			for (int i = 0; i < numBlocks; ++i) {
 				for (int j = 0; j < blockSize; ++j) {
 					const uint val = *addr++;
-					for (int k = 0; k < 5; ++k) {
-						outFile << toChar((val << (k * 6)) & BYTE_MASK);
+					for (int k = 4; k >= 0; -k) {
+						outFile << toChar((val >> (k * 6)) & BYTE_MASK);
 					}
 
 					if (j > 0 && (j % 4) == 0) {
@@ -192,13 +206,14 @@ public:
 
 	// Interface
 	bool out(const vWord *addr) {
+		busyUntil = currentTimeMilli() + (blockSize * 100);
 		for (int i = 0; i < blockSize; ++i) {
 			const uint val = *addr++;
-			for (int j = 0; j < 5; ++j) {
-				outStream << toChar((val << (j * 6)) & BYTE_MASK);
+			for (int j = 4; j >= 0; --j) {
+				outStream << toChar((val >> (j * 6)) & BYTE_MASK);
 			}
-			outStream << '\n';
 		}
+		outStream << '\n';
 		return true;
 	};
 };
@@ -214,16 +229,23 @@ public:
 
 	// Interface
 	bool in(vWord *addr) {
-		for (int i = 0; i < blockSize; ++i) {
+		bool esc = false;
+		for (int i = 0; !esc && i < blockSize; ++i) {
 			vWord &val = *addr++;
-			val.sign = P;
-			val.data = 0;
-			for (int j = 0; j < 5; ++j) {
+			val = vWord{};
+			for (int j = 4; j >= 0; --j) {
 				char tmp{};
-				inStream.read(&tmp, 1);
+				inStream.get(tmp);
 				uint v = toVal(tmp);
 				if (v == (uint) CHAR_INDEX::NULLCHAR) {
 					v = (uint) CHAR_INDEX::SPACE;
+					
+					val.data |= (v & BYTE_MASK) << (j * 6);
+					for (int j = i + 1; j < blockSize; ++j) {
+						*addr++ = vWord{};
+					}
+					esc = true;
+					break;
 				}
 				val.data |= (v & BYTE_MASK) << (j * 6);
 			}
@@ -243,6 +265,7 @@ public:
 
 	// Interface
 	bool out(const vWord *addr) {
+		busyUntil = currentTimeMilli() + (blockSize * 200);
 		ofstream outFile(path, ios::out);
 		if (outFile.is_open()) {
 			for (int i = 0; i < numBlocks; ++i) {
