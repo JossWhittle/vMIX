@@ -57,6 +57,9 @@ namespace FIELD {
 		R = f % 8;
 		L = (f - R) / 8;
 	};
+	inline uint calcF(const uint L, const uint R) {
+		return (8 * L) + R;
+	};
 	// Calculate size of sub-field from F
 	inline uint calcSize(const uint f) {
 		uint L, R;
@@ -98,5 +101,41 @@ namespace FIELD {
 		}
 
 		return ret;
+	};
+
+	inline void set(vWord &word, const uint f, const vWord &val) {
+		// Special case for default 0:5 field
+		if (f == 5) {
+			word = val;
+			return;
+		}
+
+		// Calculate the field
+		uint L, R;
+		calcLR(f, L, R);
+		uint s = (R - L) + 1;
+
+		// Return is positive unless L == 0
+		vWord ret{ P };
+
+		// Copy sign
+		if (L == 0) {
+			ret.sign = word.sign;
+			--s;
+		}
+
+		// If no data bytes to copy
+		if (R == 0) return;
+
+		// Extract sub-field
+		const uint msk = (1 << (s * 6)) - 1;
+		if (R == 5) {
+			// No shifting needed
+			ret.data = val.data | (ret.data & ~msk);
+		}
+		else {
+			const uint sft = ((5 - R) * 6);
+			ret.data = (val.data >> sft) | (ret.data & ~msk);
+		}
 	};
 };
