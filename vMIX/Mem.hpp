@@ -9,6 +9,7 @@ using namespace std;
 
 // Helper
 typedef uint32_t uint;
+typedef int64_t int64;
 
 // Masks
 constexpr uint P = 0;
@@ -25,7 +26,7 @@ struct vWord {
 	uint data:30;
 
 	// Overloaded cast to int
-	inline operator uint() const { return (sign == P) ? data : -data; };
+	inline operator int() const { return (sign == P) ? data : -data; };
 };
 
 // Getters
